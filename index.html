@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastering OpenWebUI: Roles, Groups & Share Links</title>
+    
+    <!-- Tailwind CSS for rapid, responsive UI development -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter for clean, modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- Custom Styles & Animations --- */
+        /* This block contains custom CSS to enhance the visual appeal and interactivity beyond standard Tailwind classes. */
+
+        /* Sets the default font for the entire page to 'Inter' for a clean look. */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* A light, neutral background color */
+        }
+
+        /* --- Role Matrix Table Styling --- */
+        /* Styles for table cells that are permitted for a role. Includes a transition for smooth color changes. */
+        .permitted {
+            background-color: #e6fffa; /* A light green to indicate permission */
+            color: #234e52;
+        }
+        .permitted .checkmark {
+            opacity: 1;
+            transform: scale(1);
+        }
+        /* Styles for table cells that are not permitted. They are greyed out. */
+        .greyed-out {
+            background-color: #f7fafc; /* A very light grey */
+            color: #a0aec0; /* A muted text color */
+        }
+        .greyed-out .checkmark {
+            opacity: 0;
+            transform: scale(0.5);
+        }
+        /* Smooth transition for all table cells and checkmarks */
+        td, .checkmark {
+            transition: all 0.4s ease-in-out;
+        }
+
+        /* --- Group Builder Arrow Animation --- */
+        /* Defines the keyframes for the arrow's movement from the model dropdown to the whitelist. */
+        @keyframes slide-to-whitelist {
+            0% {
+                opacity: 1;
+                transform: translateX(0) translateY(-50%);
+            }
+            80% {
+                 opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(120px) translateY(-50%); /* Adjust distance as needed */
+            }
+        }
+        /* Class to apply the animation to the arrow icon. */
+        .animate-slide {
+            animation: slide-to-whitelist 1s ease-out forwards;
+        }
+
+        /* --- Share Link Shield Animation --- */
+        /* Defines the keyframes for the shield icon's appearance. */
+        @keyframes shield-pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        /* Class to apply the animation to the shield icon. */
+        .animate-shield {
+            animation: shield-pop 0.5s ease-in-out forwards;
+        }
+
+        /* --- Security Pop-up Transitions --- */
+        /* Styling for the pop-up container, making it initially invisible and ready for transition. */
+        .security-popup {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+        }
+        /* When the 'visible' class is added, the pop-up fades in and becomes visible. */
+        .security-popup.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <!-- Header Section -->
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Mastering OpenWebUI</h1>
+            <p class="text-lg text-gray-600 mt-2">An Interactive Guide to Roles, Groups & Share Links</p>
+        </header>
+
+        <!-- Main content grid: 1 column on mobile, 2 on larger screens -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <!-- Left Column -->
+            <div class="flex flex-col gap-8">
+
+                <!-- Role Matrix Toggle Card -->
+                <div id="role-matrix" class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">Role Matrix Toggle</h2>
+                    <p class="mb-6 text-gray-600">Click a role to see its permissions. Permissions determine what actions a user can perform.</p>
+                    
+                    <!-- Role selection buttons -->
+                    <div class="flex space-x-2 mb-6" role="group" aria-label="Select a user role">
+                        <!-- Each button calls the setRole function with the corresponding role name -->
+                        <button onclick="setRole('system')" id="btn-system" class="role-btn flex-1 px-4 py-2 text-sm font-semibold bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 transition-all">System</button>
+                        <button onclick="setRole('admin')" id="btn-admin" class="role-btn flex-1 px-4 py-2 text-sm font-semibold bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-75 transition-all">Admin</button>
+                        <button onclick="setRole('member')" id="btn-member" class="role-btn flex-1 px-4 py-2 text-sm font-semibold bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-75 transition-all">Member</button>
+                    </div>
+
+                    <!-- Permissions Table -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full border border-gray-200 rounded-lg">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="p-3 text-left text-sm font-semibold text-gray-600">Action</th>
+                                    <th class="p-3 text-center text-sm font-semibold text-gray-600">Permission</th>
+                                </tr>
+                            </thead>
+                            <tbody id="permissions-table-body" class="bg-white">
+                                <!-- Table rows will be dynamically populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Share-Link Generator Card -->
+                <div id="share-link-generator" class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-2">Share-Link Generator</h2>
+                     <div class="flex items-center space-x-2 mb-4">
+                        <p class="text-gray-600">Create temporary, secure links to share conversations.</p>
+                        <!-- Security Tip Icon -->
+                        <div class="relative group">
+                            <svg class="w-5 h-5 text-yellow-500 cursor-pointer" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-4a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+                            </svg>
+                            <!-- Security Tip Pop-up -->
+                            <div class="security-popup absolute bottom-full mb-2 w-60 bg-gray-800 text-white text-sm rounded-lg p-3 shadow-xl z-10">
+                                <strong class="font-bold block">Security Tip:</strong> Rotate shared links frequently, especially for sensitive conversations.
+                                <button class="absolute top-1 right-1 text-gray-400 hover:text-white">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Link generation form -->
+                    <div class="space-y-4">
+                        <div>
+                            <label for="expiration" class="block text-sm font-medium text-gray-700">Expiration (minutes)</label>
+                            <input type="number" id="expiration" value="60" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" aria-label="Link expiration time in minutes">
+                        </div>
+                        <div class="flex items-center">
+                            <input id="read-only" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" aria-label="Make link read-only">
+                            <label for="read-only" class="ml-2 block text-sm text-gray-900">Read-only</label>
+                        </div>
+                        <button onclick="generateLink()" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75 transition-colors">
+                            Generate Link
+                        </button>
+                    </div>
+
+                    <!-- Generated link display area -->
+                    <div id="link-output" class="mt-6 p-4 bg-gray-100 rounded-lg h-24 flex items-center justify-center text-gray-500 transition-all">
+                        Your generated link will appear here.
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column -->
+            <div class="flex flex-col gap-8">
+                
+                <!-- Group Builder Simulator Card -->
+                <div id="group-builder" class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">Group Builder Simulator</h2>
+                    <p class="mb-6 text-gray-600">Create user groups and whitelist specific models for them. This controls which AI models a group can access.</p>
+                    
+                    <!-- Group Creation -->
+                    <div class="space-y-4">
+                        <div>
+                            <label for="group-name" class="block text-sm font-medium text-gray-700">New Group Name</label>
+                            <input type="text" id="group-name" placeholder="e.g., 'Marketing Team'" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" aria-label="New group name">
+                        </div>
+                        <div>
+                            <label for="user-name" class="block text-sm font-medium text-gray-700">Add User</label>
+                            <input type="text" id="user-name" placeholder="e.g., 'blaine.fisher'" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" aria-label="Add user to group">
+                        </div>
+                        
+                        <!-- Model Whitelisting Section -->
+                        <div class="relative">
+                             <label for="model-select" class="block text-sm font-medium text-gray-700">Whitelist a Model</label>
+                            <div class="flex items-center space-x-4 mt-1">
+                                <select id="model-select" class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" aria-label="Select a model to whitelist">
+                                    <option>Llama3-70B</option>
+                                    <option>GPT-4o</option>
+                                    <option>Gemini-1.5-Pro</option>
+                                    <option>Claude-3-Opus</option>
+                                </select>
+                                <button onclick="whitelistModel()" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition-colors" aria-label="Whitelist selected model">
+                                    Add
+                                </button>
+                            </div>
+                             <!-- This is where the animated arrow will appear -->
+                             <div id="arrow-animation-container" class="absolute left-0 top-1/2 w-full h-full pointer-events-none"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Whitelisted Models Display -->
+                    <div class="mt-6">
+                        <h3 class="font-semibold text-gray-800">Whitelisted Models for <span id="display-group-name" class="font-bold text-indigo-600">New Group</span>:</h3>
+                        <div id="whitelist-output" class="mt-2 p-4 bg-gray-100 rounded-lg min-h-[6rem] text-gray-500 flex flex-col space-y-2">
+                           Your whitelisted models will appear here.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // --- JAVASCRIPT LOGIC --- //
+    // This script handles all the interactive functionality of the infographic.
+
+    // --- Data Definitions --- //
+    // Defines the permissions for each role. This makes it easy to update or add new roles/actions.
+    const rolePermissions = {
+        system: ['Manage Users', 'Manage System Settings', 'View Server Logs', 'Use All Models', 'Create Share Links'],
+        admin: ['Manage Users', 'Use All Models', 'Create Share Links'],
+        member: ['Use All Models', 'Create Share Links']
+    };
+    // A complete list of all possible actions.
+    const allActions = ['Manage Users', 'Manage System Settings', 'View Server Logs', 'Use All Models', 'Create Share Links'];
+    
+    // The currently selected role, initialized to 'system'.
+    let currentRole = 'system';
+    
+    // --- Role Matrix Logic --- //
+    
+    /**
+     * Sets the active role and updates the UI.
+     * @param {string} role - The role to set ('system', 'admin', or 'member').
+     */
+    function setRole(role) {
+        currentRole = role;
+        updateRoleButtons();
+        updatePermissionsTable();
+    }
+
+    /**
+     * Updates the visual state of the role selection buttons.
+     * The active role gets a distinct style.
+     */
+    function updateRoleButtons() {
+        const buttons = document.querySelectorAll('.role-btn');
+        buttons.forEach(button => {
+            // Remove active styles from all buttons
+            button.classList.remove('bg-blue-500', 'text-white');
+            button.classList.add('bg-gray-200', 'text-gray-700');
+            
+            // Add active styles to the button corresponding to the current role
+            if (button.id === `btn-${currentRole}`) {
+                button.classList.add('bg-blue-500', 'text-white');
+                button.classList.remove('bg-gray-200', 'text-gray-700');
+            }
+        });
+    }
+
+    /**
+     * Renders the permissions table based on the currently selected role.
+     * It checks each action against the current role's permissions.
+     */
+    function updatePermissionsTable() {
+        const tableBody = document.getElementById('permissions-table-body');
+        tableBody.innerHTML = ''; // Clear the existing table rows
+
+        const permittedActions = rolePermissions[currentRole];
+
+        allActions.forEach(action => {
+            const isPermitted = permittedActions.includes(action);
+            const rowClass = isPermitted ? 'permitted' : 'greyed-out';
+
+            // Create and append the new table row
+            const row = `
+                <tr class="${rowClass}">
+                    <td class="p-3 font-medium">${action}</td>
+                    <td class="p-3 text-center">
+                        <div class="checkmark inline-block">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            tableBody.innerHTML += row;
+        });
+    }
+
+    // --- Group Builder Logic --- //
+
+    /**
+     * Simulates whitelisting a model for the current group.
+     * It creates a visual feedback animation.
+     */
+    function whitelistModel() {
+        const modelSelect = document.getElementById('model-select');
+        const selectedModel = modelSelect.value;
+        const whitelistOutput = document.getElementById('whitelist-output');
+        
+        // If it's the placeholder text, clear it first.
+        if (whitelistOutput.innerText.includes('Your whitelisted models')) {
+            whitelistOutput.innerHTML = '';
+            whitelistOutput.classList.remove('text-gray-500');
+        }
+
+        // Check if model is already added to prevent duplicates
+        if ([...whitelistOutput.children].some(child => child.textContent === selectedModel)) {
+            // Optional: Add feedback that model is already added
+            return; 
+        }
+
+        // Add the new model to the list
+        const modelTag = document.createElement('div');
+        modelTag.className = 'bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full animate-shield'; // Re-use shield animation for pop-in
+        modelTag.textContent = selectedModel;
+        whitelistOutput.appendChild(modelTag);
+
+        // Trigger the arrow animation
+        animateArrow();
+    }
+    
+    /**
+     * Creates and animates an arrow from the dropdown to the whitelist area.
+     */
+    function animateArrow() {
+        const container = document.getElementById('arrow-animation-container');
+        const arrow = document.createElement('div');
+        arrow.className = 'absolute right-20 top-0 text-green-500 animate-slide';
+        arrow.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
+        
+        container.appendChild(arrow);
+
+        // Remove the arrow from the DOM after the animation completes to keep the DOM clean.
+        setTimeout(() => {
+            arrow.remove();
+        }, 1000); // Matches animation duration
+    }
+    
+    // Updates the display name for the group as the user types.
+    document.getElementById('group-name').addEventListener('input', (e) => {
+        const groupName = e.target.value || 'New Group';
+        document.getElementById('display-group-name').textContent = groupName;
+    });
+
+
+    // --- Share-Link Generator Logic --- //
+    
+    /**
+     * Generates a fake share link based on user inputs.
+     */
+    function generateLink() {
+        const expiration = document.getElementById('expiration').value;
+        const isReadOnly = document.getElementById('read-only').checked;
+        const outputDiv = document.getElementById('link-output');
+
+        // Simple logic to create a fake URL
+        const randomString = Math.random().toString(36).substring(2, 10);
+        const url = `https://openwebui.example.com/share/${randomString}`;
+
+        // Prepare the output HTML
+        let outputHTML = `
+            <div class="text-center">
+                <p class="font-mono text-sm text-indigo-700 break-all">${url}</p>
+                <p class="text-xs text-gray-500 mt-1">Expires in ${expiration || 'N/A'} minutes.</p>
+            </div>
+        `;
+
+        // If read-only, add a shield icon with an animation.
+        if (isReadOnly) {
+            outputHTML += `
+                <div class="ml-4 text-blue-500 animate-shield" title="This link is read-only">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 2.25a.75.75 0 01.75.75v.5a2.25 2.25 0 004.5 0v-.5a.75.75 0 011.5 0v.5a3.75 3.75 0 01-7.5 0v-.5A.75.75 0 0110 2.25zM6.166 7.563a.75.75 0 01.534.22l.293.292a.75.75 0 01-1.06 1.06l-.293-.292a.75.75 0 01.533-1.28zM12.207 9.113a.75.75 0 011.06 0l.293.292a.75.75 0 01-1.06 1.06l-.293-.292a.75.75 0 010-1.06zM10 18a8 8 0 100-16 8 8 0 000 16zM5.5 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75z"></path>
+                    </svg>
+                </div>
+            `;
+        }
+
+        outputDiv.innerHTML = outputHTML;
+        outputDiv.classList.remove('text-gray-500'); // Make text darker
+    }
+    
+    // --- Security Pop-up Logic --- //
+    
+    // Adds event listeners to all security tip icons for hover functionality.
+    document.querySelectorAll('.relative.group').forEach(container => {
+        const icon = container.querySelector('svg');
+        const popup = container.querySelector('.security-popup');
+        const closeBtn = popup.querySelector('button');
+
+        // Show pop-up on hover
+        icon.addEventListener('mouseenter', () => {
+            popup.classList.add('visible');
+        });
+
+        // Hide pop-up when mouse leaves the container area
+        container.addEventListener('mouseleave', () => {
+            popup.classList.remove('visible');
+        });
+        
+        // Hide pop-up when the close button is clicked
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent container's mouseleave from firing
+            popup.classList.remove('visible');
+        });
+    });
+
+
+    // --- Initial Setup --- //
+    
+    // When the page loads, initialize the UI to the default state.
+    window.onload = () => {
+        setRole('system'); // Set the initial role and render the table
+    };
+
+    </script>
+</body>
+</html>
